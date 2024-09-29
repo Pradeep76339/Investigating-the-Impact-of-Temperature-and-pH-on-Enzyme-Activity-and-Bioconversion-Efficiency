@@ -1,0 +1,56 @@
+import numpy as np
+from scipy.optimize import curve_fit
+import matplotlib.pyplot as plt
+
+# Define the combined effects model
+def combined_model(x, A, Ea, pH_opt, pH_width):
+    T, pH = x
+    R = 8.314  # Gas constant in J/(mol*K)
+    k = A * np.exp(-Ea / (R * T))  # Arrhenius equation for temperature
+    pH_effect = np.exp(-((pH - pH_opt) / (2 * pH_width))**2)  # pH dependence as a Gaussian bell-shaped curve
+    return k * pH_effect
+
+# Generate random experimental data
+np.random.seed(0)
+T_data = np.random.uniform(20, 80, 50)  # Temperature data in °C
+pH_data = np.random.uniform(4, 9, 50)    # pH data
+activity_data = combined_model((T_data, pH_data), 1.0, 5000, 7, 1)  # Simulated enzyme activity data
+
+# Fit the model to the experimental data to determine parameters
+popt, pcov = curve_fit(combined_model, (T_data, pH_data), activity_data, bounds=([0, 0, 4, 0], [np.inf, np.inf, 9, np.inf]))
+
+# Extract the fitted parameters
+A_fit, Ea_fit, pH_opt_fit, pH_width_fit = popt
+
+# Predict optimal conditions
+optimal_temperature = np.linspace(20, 80, 100)
+optimal_pH = np.linspace(4, 9, 100)
+temperature_mesh, pH_mesh = np.meshgrid(optimal_temperature, optimal_pH)
+predicted_activity = combined_model((temperature_mesh, pH_mesh), A_fit, Ea_fit, pH_opt_fit, pH_width_fit)
+
+# Plot the results
+plt.figure(figsize=(12, 6))
+
+plt.subplot(1, 2, 1)
+plt.scatter(T_data, pH_data, c=activity_data, cmap='viridis')
+plt.colorbar(label='Enzyme Activity')
+plt.xlabel('Temperature (°C)')
+plt.ylabel('pH')
+plt.title('Experimental Data')
+
+plt.subplot(1, 2, 2)
+plt.contourf(temperature_mesh, pH_mesh, predicted_activity, cmap='viridis')
+plt.colorbar(label='Enzyme Activity')
+plt.xlabel('Temperature (°C)')
+plt.ylabel('pH')
+plt.title('Predicted Activity')
+
+plt.tight_layout()
+plt.show()
+
+# Print the fitted parameters
+print("Fitted Parameters:")
+print("A:", A_fit)
+print("Ea:", Ea_fit)
+print("pH_opt:", pH_opt_fit)
+print("pH_width:", pH_width_fit)
